@@ -17,6 +17,7 @@ import {
 import BarcodeScanner from 'react-native-scan-barcode';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { productsAPI } from '../services/api';
+import { useNavigation } from '@react-navigation/native';
 
 interface Product {
   _id: string;
@@ -42,10 +43,18 @@ const ScannerScreen = () => {
   const [demoMode, setDemoMode] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
   const [calculatorValue, setCalculatorValue] = useState('1');
+  const [cameraPermission, setCameraPermission] = useState<boolean | null>(null);
+  const navigation = useNavigation();
 
   useEffect(() => {
     checkDemoMode();
-  }, []);
+    const unsubscribe = navigation.addListener('focus', () => {
+      // Reset scanner state when screen comes into focus
+      closeScannerModal();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   const checkDemoMode = async () => {
     try {
@@ -104,10 +113,56 @@ const ScannerScreen = () => {
     searchProduct(manualCode);
   };
 
+  const requestCameraPermission = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.CAMERA,
+          {
+            title: 'Camera Permission',
+            message: 'This app needs access to your camera to scan barcodes.',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          },
+        );
+        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+          console.log('Camera permission granted');
+          setCameraPermission(true);
+          return true;
+        } else {
+          console.log('Camera permission denied');
+          setCameraPermission(false);
+          return false;
+        }
+      } catch (err) {
+        console.warn(err);
+        setCameraPermission(false);
+        return false;
+      }
+    } else {
+      // For iOS, permissions are typically handled in Info.plist
+      // and the system prompts automatically.
+      setCameraPermission(true);
+      return true;
+    }
+  };
+
   const startScanner = async () => {
-    // You may want to request camera permission here using PermissionsAndroid for Android
-    setShowScanner(true);
-    setScannerActive(true);
+    const hasPermission = await requestCameraPermission();
+    if (hasPermission) {
+      setShowScanner(true);
+      setScannerActive(true);
+    } else {
+      Alert.alert(
+        'Permission Denied',
+        'You need to grant camera permission to use the scanner.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open Settings', onPress: () => Linking.openSettings() },
+        ]
+      );
+    }
   };
 
   const closeScannerModal = () => {

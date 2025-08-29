@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Alert
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { analyticsAPI } from '../services/api';
 
 interface DashboardMetrics {
@@ -24,10 +25,15 @@ const DashboardScreen = () => {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const navigation = useNavigation();
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchDashboardData();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   const fetchDashboardData = async () => {
     try {
@@ -147,22 +153,34 @@ const DashboardScreen = () => {
             <Text style={styles.sectionTitle}>Quick Actions</Text>
             
             <View style={styles.quickActionsGrid}>
-              <TouchableOpacity style={styles.quickActionCard}>
+              <TouchableOpacity
+                style={styles.quickActionCard}
+                onPress={() => navigation.navigate('Scanner')}
+              >
                 <Text style={styles.quickActionIcon}>📱</Text>
                 <Text style={styles.quickActionLabel}>Scan Product</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.quickActionCard}>
+              <TouchableOpacity
+                style={styles.quickActionCard}
+                onPress={() => navigation.navigate('Products')}
+              >
                 <Text style={styles.quickActionIcon}>📋</Text>
                 <Text style={styles.quickActionLabel}>View Products</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.quickActionCard}>
+              <TouchableOpacity
+                style={styles.quickActionCard}
+                onPress={() => navigation.navigate('Analytics')}
+              >
                 <Text style={styles.quickActionIcon}>📊</Text>
                 <Text style={styles.quickActionLabel}>Analytics</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.quickActionCard}>
+              <TouchableOpacity
+                style={styles.quickActionCard}
+                onPress={() => navigation.navigate('Products', { screen: 'ProductsScreen', params: { filter: 'low-stock' } })}
+              >
                 <Text style={styles.quickActionIcon}>⚡</Text>
                 <Text style={styles.quickActionLabel}>Low Stock</Text>
               </TouchableOpacity>

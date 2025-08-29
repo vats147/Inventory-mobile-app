@@ -14,6 +14,7 @@ import {
   ScrollView
 } from 'react-native';
 import { productsAPI } from '../services/api';
+import { useRoute } from '@react-navigation/native';
 
 interface Product {
   _id: string;
@@ -40,14 +41,23 @@ const ProductsScreen = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
+  const [activeFilter, setActiveFilter] = useState(''); // 'low-stock', 'expired', etc.
+  const route = useRoute();
 
   useEffect(() => {
     fetchProducts();
   }, []);
 
   useEffect(() => {
+    const params = route.params as { filter?: string };
+    if (params?.filter) {
+      setActiveFilter(params.filter);
+    }
+  }, [route.params]);
+
+  useEffect(() => {
     filterProducts();
-  }, [products, searchQuery, selectedCategory]);
+  }, [products, searchQuery, selectedCategory, activeFilter]);
 
   const fetchProducts = async () => {
     try {
@@ -88,6 +98,11 @@ const ProductsScreen = () => {
     // Filter by category
     if (selectedCategory) {
       filtered = filtered.filter(product => product.category === selectedCategory);
+    }
+
+    // Filter by active filter (e.g., low-stock)
+    if (activeFilter === 'low-stock') {
+      filtered = filtered.filter(product => product.isLowStock);
     }
 
     setFilteredProducts(filtered);
